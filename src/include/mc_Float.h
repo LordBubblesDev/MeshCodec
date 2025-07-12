@@ -145,7 +145,7 @@ struct Vec3 {
 
     void Normalize() {
         const f32 len = Length();
-        if (len >= 0.f) {
+        if (len > 0.f) {
             x /= len;
             y /= len;
             z /= len;
