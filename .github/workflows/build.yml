@@ -14,18 +14,8 @@ jobs:
             arch: x64
             generator: "Visual Studio 17 2022"
             arch_flag: "-A x64"
-          - os: windows-latest
-            arch: arm64
-            generator: "Visual Studio 17 2022"
-            arch_flag: "-A ARM64"
           - os: ubuntu-latest
             arch: x64
-            generator: "Unix Makefiles"
-            arch_flag: ""
-            cc: gcc
-            cxx: g++
-          - os: ubuntu-22.04-arm
-            arch: arm64
             generator: "Unix Makefiles"
             arch_flag: ""
             cc: gcc
@@ -38,14 +28,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Linux dependencies (x64)
-        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
-
-      - name: Install Linux dependencies (ARM64)
-        if: matrix.os == 'ubuntu-22.04-arm' && matrix.arch == 'arm64'
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
@@ -56,17 +40,8 @@ jobs:
         run: |
           cmake -B build -G "${{ matrix.generator }}" ${{ matrix.arch_flag }} -DBUILD_TESTING=ON
 
-      - name: Configure CMake (Linux x64)
-        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
-        working-directory: ${{ github.workspace }}
-        env:
-          CC: ${{ matrix.cc }}
-          CXX: ${{ matrix.cxx }}
-        run: |
-          cmake -B build -G "${{ matrix.generator }}" -DBUILD_TESTING=ON
-
-      - name: Configure CMake (Linux ARM64)
-        if: matrix.os == 'ubuntu-22.04-arm' && matrix.arch == 'arm64'
+      - name: Configure CMake (Linux)
+        if: matrix.os == 'ubuntu-latest'
         working-directory: ${{ github.workspace }}
         env:
           CC: ${{ matrix.cc }}
@@ -81,7 +56,7 @@ jobs:
           cmake --build . --config Release --target mc_decompressor
 
       - name: Build (Linux)
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-22.04-arm'
+        if: matrix.os == 'ubuntu-latest'
         working-directory: ${{ github.workspace }}/build
         run: |
           cmake --build . --config Release --target mc_decompressor
@@ -94,27 +69,11 @@ jobs:
           path: ${{ github.workspace }}/build/tests/Release/mc_decompressor.exe
           if-no-files-found: error
 
-      - name: Upload Windows ARM64 artifact
-        if: matrix.os == 'windows-latest' && matrix.arch == 'arm64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mc_decompressor-windows-arm64
-          path: ${{ github.workspace }}/build/tests/Release/mc_decompressor.exe
-          if-no-files-found: error
-
-      - name: Upload Linux x64 artifact
-        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
+      - name: Upload Linux artifact
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: mc_decompressor-linux-x64
-          path: ${{ github.workspace }}/build/tests/mc_decompressor
-          if-no-files-found: error
-
-      - name: Upload Linux ARM64 artifact
-        if: matrix.os == 'ubuntu-22.04-arm' && matrix.arch == 'arm64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: mc_decompressor-linux-arm64
           path: ${{ github.workspace }}/build/tests/mc_decompressor
           if-no-files-found: error
 
@@ -137,9 +96,7 @@ jobs:
         run: |
           mkdir -p release
           cd artifacts/mc_decompressor-windows-x64 && zip -r ../../release/"MeshCodec Decompressor Windows-x64.zip" mc_decompressor.exe
-          cd ../mc_decompressor-windows-arm64 && zip -r ../../release/"MeshCodec Decompressor Windows-arm64.zip" mc_decompressor.exe
           cd ../mc_decompressor-linux-x64 && chmod +x mc_decompressor && zip -r ../../release/"MeshCodec Decompressor Linux-x64.zip" mc_decompressor
-          cd ../mc_decompressor-linux-arm64 && chmod +x mc_decompressor && zip -r ../../release/"MeshCodec Decompressor Linux-arm64.zip" mc_decompressor
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -148,11 +105,8 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             release/MeshCodec Decompressor Windows-x64.zip
-            release/MeshCodec Decompressor Windows-arm64.zip
             release/MeshCodec Decompressor Linux-x64.zip
-            release/MeshCodec Decompressor Linux-arm64.zip
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
